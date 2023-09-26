@@ -79,14 +79,20 @@ func (c *CronJob) GetAlarmData() []byte {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("Error: %s\n", err)
+		log.Printf("Error: %s\n", err)
 		return nil
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("Error reading body: %s\n", err)
+		log.Printf("Error reading body: %s\n", err)
+		return nil
+	}
+
+	if resp.StatusCode >= 400 {
+		// Imprimir la respuesta del servidor si hay un error
+		log.Printf("IOGPS API Error | Status code: %d, Response: %s\n", resp.StatusCode, string(body))
 		return nil
 	}
 
