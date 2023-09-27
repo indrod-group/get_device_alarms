@@ -91,8 +91,12 @@ func (c *CronJob) GetAlarmData() []byte {
 	}
 
 	if resp.StatusCode >= 400 {
-		// Imprimir la respuesta del servidor si hay un error
 		log.Printf("IOGPS API Error | Status code: %d, Response: %s\n", resp.StatusCode, string(body))
+		return nil
+	}
+
+	if len(body) == 0 {
+		log.Printf("Empty response body\n")
 		return nil
 	}
 
@@ -104,6 +108,11 @@ func (c *CronJob) GetAlarmData() []byte {
 }
 
 func (c *CronJob) ProcessAlarmData(data []byte) {
+	if len(data) == 0 {
+		log.Printf("No data to process\n")
+		return
+	}
+
 	authToken := os.Getenv("AUTH_TOKEN")
 	URL := os.Getenv("MY_API_URL")
 	var details ApiResponse

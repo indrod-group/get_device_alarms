@@ -1,13 +1,28 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 
 	"github.com/twilio/twilio-go"
 	api "github.com/twilio/twilio-go/rest/api/v2010"
 )
 
+/*
+SendMessage sends a WhatsApp message to multiple recipients using the Twilio API.
+
+Inputs:
+  - message (string): The content of the message to be sent.
+
+Outputs:
+  - None. The function only prints the message SID if the message is sent successfully or an error message if there is an error.
+
+Example Usage:
+
+	SendMessage("Hello, World!")
+
+This code will send the message "Hello, World!" to the three WhatsApp numbers specified in the `numbers` array.
+*/
 func SendMessage(message string) {
 	accountSid := os.Getenv("TWILIO_ACCOUNT_SID")
 	authToken := os.Getenv("TWILIO_AUTH_TOKEN")
@@ -30,13 +45,14 @@ func SendMessage(message string) {
 
 		resp, err := client.Api.CreateMessage(params)
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Printf("Error sending message: %s\n", err.Error())
+			continue
+		}
+
+		if resp.Sid != nil {
+			log.Printf("Message sent successfully, SID: %s\n", *resp.Sid)
 		} else {
-			if resp.Sid != nil {
-				fmt.Println(*resp.Sid)
-			} else {
-				fmt.Println(resp.Sid)
-			}
+			log.Println("Message sent successfully, but no SID returned")
 		}
 	}
 }
