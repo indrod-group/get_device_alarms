@@ -15,9 +15,9 @@ type User struct {
 	AccountName   string  `json:"account_name"`
 	UserName      string  `json:"user_name"`
 	Imei          string  `json:"imei"`
-	LicenseNumber *string `json:"license_number"`
-	Vin           *string `json:"vin"`
-	CarOwner      *string `json:"car_owner"`
+	LicenseNumber *string `json:"license_number,omitempty"`
+	Vin           *string `json:"vin,omitempty"`
+	CarOwner      *string `json:"car_owner,omitempty"`
 	IsTracking    bool    `json:"is_tracking"`
 }
 
@@ -42,26 +42,50 @@ func GetUserFromApi() []User {
 
 func (user *User) GetSOSMessage(time int64) string {
 	localTime := UnixToLocal(time)
-	if user.UserName == *user.CarOwner {
-		return fmt.Sprintf("🚨🚨 ALERTA DE SOS 🚨🚨\nDatos del usuario:\nUsuario y propietario: %s\nPlaca del vehículo: %s\nHora de alarma: %s", user.UserName, *user.LicenseNumber, localTime)
+	carOwner := "desconocido"
+	licenseNumber := "desconocido"
+	if user.CarOwner != nil {
+		carOwner = *user.CarOwner
 	}
-	return fmt.Sprintf("🚨🚨 ALERTA DE SOS 🚨🚨\nDatos del usuario:\nUsuario: %s\nPropietario: %s\nPlaca del vehículo: %s\nHora de alarma: %s", user.UserName, *user.CarOwner, *user.LicenseNumber, localTime)
+	if user.LicenseNumber != nil {
+		licenseNumber = *user.LicenseNumber
+	}
+	if user.UserName == carOwner {
+		return fmt.Sprintf("🚨🚨 ALERTA DE SOS 🚨🚨\nDatos del usuario:\nUsuario y propietario: %s\nPlaca del vehículo: %s\nHora de alarma: %s", user.UserName, licenseNumber, localTime)
+	}
+	return fmt.Sprintf("🚨🚨 ALERTA DE SOS 🚨🚨\nDatos del usuario:\nUsuario: %s\nPropietario: %s\nPlaca del vehículo: %s\nHora de alarma: %s", user.UserName, carOwner, licenseNumber, localTime)
 }
 
 func (user *User) GetRemoveMessage(time int64) string {
 	localTime := UnixToLocal(time)
-	if user.UserName == *user.CarOwner {
-		return fmt.Sprintf("⚡⚡ ALERTA DE CORTE DE CORRIENTE ⚡⚡\nDatos del usuario:\nUsuario y propietario: %s\nPlaca del vehículo: %s\nHora de alarma: %s", user.UserName, *user.LicenseNumber, localTime)
+	carOwner := "desconocido"
+	licenseNumber := "desconocido"
+	if user.CarOwner != nil {
+		carOwner = *user.CarOwner
 	}
-	return fmt.Sprintf("⚡⚡ ALERTA DE CORTE DE CORRIENTE ⚡⚡\nDatos del usuario:\nUsuario: %s\nPropietario: %s\nPlaca del vehículo: %s\nHora de alarma: %s", user.UserName, *user.CarOwner, *user.LicenseNumber, localTime)
+	if user.LicenseNumber != nil {
+		licenseNumber = *user.LicenseNumber
+	}
+	if user.UserName == carOwner {
+		return fmt.Sprintf("⚡⚡ ALERTA DE CORTE DE CORRIENTE ⚡⚡\nDatos del usuario:\nUsuario y propietario: %s\nPlaca del vehículo: %s\nHora de alarma: %s", user.UserName, licenseNumber, localTime)
+	}
+	return fmt.Sprintf("⚡⚡ ALERTA DE CORTE DE CORRIENTE ⚡⚡\nDatos del usuario:\nUsuario: %s\nPropietario: %s\nPlaca del vehículo: %s\nHora de alarma: %s", user.UserName, carOwner, licenseNumber, localTime)
 }
 
 func (user *User) GetLowvotMessage(time int64) string {
 	localTime := UnixToLocal(time)
-	if user.UserName == *user.CarOwner {
-		return fmt.Sprintf("⚡⚡ ALERTA DE CORRIENTE BAJA ⚡⚡\nDatos del usuario:\nUsuario y propietario: %s\nPlaca del vehículo: %s\nHora de alarma: %s", user.UserName, *user.LicenseNumber, localTime)
+	carOwner := "desconocido"
+	licenseNumber := "desconocido"
+	if user.CarOwner != nil {
+		carOwner = *user.CarOwner
 	}
-	return fmt.Sprintf("⚡⚡ ALERTA DE CORRIENTE BAJA ⚡⚡\nDatos del usuario:\nUsuario: %s\nPropietario: %s\nPlaca del vehículo: %s\nHora de alarma: %s", user.UserName, *user.CarOwner, *user.LicenseNumber, localTime)
+	if user.LicenseNumber != nil {
+		licenseNumber = *user.LicenseNumber
+	}
+	if user.UserName == carOwner {
+		return fmt.Sprintf("⚡⚡ ALERTA DE CORRIENTE BAJA ⚡⚡\nDatos del usuario:\nUsuario y propietario: %s\nPlaca del vehículo: %s\nHora de alarma: %s", user.UserName, licenseNumber, localTime)
+	}
+	return fmt.Sprintf("⚡⚡ ALERTA DE CORRIENTE BAJA ⚡⚡\nDatos del usuario:\nUsuario: %s\nPropietario: %s\nPlaca del vehículo: %s\nHora de alarma: %s", user.UserName, carOwner, licenseNumber, localTime)
 }
 
 func UnixToLocal(unixTime int64) time.Time {
