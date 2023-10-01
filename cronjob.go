@@ -143,19 +143,13 @@ func (c *CronJob) ProcessAlarmData(data []byte) {
 
 		log.Printf("ACV API | Status code: %d\n", resp.StatusCode)
 
-		if detail.AlarmCode == "SOS" {
-			message := c.user.GetSOSMessage(detail.AlarmTime)
-			SendMessage(message)
-		}
-
-		if detail.AlarmCode == "REMOVE" {
-			message := c.user.GetRemoveMessage(detail.AlarmTime)
-			SendMessage(message)
-		}
-
-		if detail.AlarmCode == "LOWVOT" {
-			message := c.user.GetLowvotMessage(detail.AlarmTime)
-			SendMessage(message)
+		alarmCodes := []string{"SOS", "REMOVE", "LOWVOT"}
+		for _, alarmCode := range alarmCodes {
+			if detail.AlarmCode == alarmCode {
+				mb := NewMessageBuilder(&c.user, alarmCode, detail.AlarmTime)
+				message := mb.BuildMessage()
+				SendMessage(message)
+			}
 		}
 
 	}
