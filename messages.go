@@ -56,3 +56,15 @@ func SendMessage(message string) {
 		}
 	}
 }
+
+// Function to check the alarm type and send a message if necessary
+func CheckAndSendAlarm(user User, detail AlarmData) {
+	alarmCodes := []string{"SOS", "REMOVE", "LOWVOT"}
+	for _, alarmCode := range alarmCodes {
+		if detail.AlarmCode == alarmCode {
+			mb := NewMessageBuilder(&user, alarmCode, detail.AlarmTime)
+			message := mb.BuildMessage()
+			SendMessage(message)
+		}
+	}
+}
