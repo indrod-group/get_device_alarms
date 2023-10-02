@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 )
 
 var client = &http.Client{}
@@ -100,8 +101,14 @@ func ProcessAlarmData(user User, data []byte) error {
 		return fmt.Errorf("error unmarshalling data: %w", err)
 	}
 
+	var wgAlarms sync.WaitGroup
+
 	for _, detail := range details.Details {
-		CheckAndSendAlarm(user, detail)
+		wgAlarms.Add(1)
+		go func(detail AlarmData) {
+			defer wgAlarms.Done()
+			CheckAndSendAlarm(user, detail)
+		}(detail)
 
 		err = saveAlarmInAPI(detail)
 		if err != nil {
@@ -109,6 +116,8 @@ func ProcessAlarmData(user User, data []byte) error {
 			continue
 		}
 	}
+
+	wgAlarms.Wait()
 
 	return nil
 }
