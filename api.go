@@ -22,24 +22,24 @@ func GetAlarmData(user User, currentTime, interval int64) ([]byte, error) {
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
+		return nil, fmt.Errorf("error creating request for URL %s: %w", url, err)
 	}
 
 	req.Header.Add("AccessToken", accessToken)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error making request: %w", err)
+		return nil, fmt.Errorf("error making request to URL %s: %w", url, err)
 	}
 	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Printf("error closing response body: %s\n", err)
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			log.Printf("error closing response body from URL %s: %s\n", url, closeErr)
 		}
 	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("error reading body: %w", err)
+		return nil, fmt.Errorf("error reading body from URL %s: %w", url, err)
 	}
 
 	if resp.StatusCode >= 400 {
@@ -47,7 +47,7 @@ func GetAlarmData(user User, currentTime, interval int64) ([]byte, error) {
 	}
 
 	if len(body) == 0 {
-		return nil, fmt.Errorf("empty response body")
+		return nil, fmt.Errorf("empty response body from URL %s", url)
 	}
 
 	log.Printf("IOGPS API | Status code: %d, Imei: %s\n", resp.StatusCode, imei)
@@ -61,28 +61,29 @@ func saveAlarmInAPI(detail AlarmData) error {
 	detailForPost := AlarmDataForPost(detail)
 	jsonData, err := json.Marshal(detailForPost)
 	if err != nil {
-		return fmt.Errorf("error marshalling data: %w", err)
+		return fmt.Errorf("error marshalling data for detail %+v: %w", detailForPost, err)
 	}
 
-	req, err := http.NewRequest("POST", URL+"details/", bytes.NewBuffer(jsonData))
+	reqURL := URL + "details/"
+	req, err := http.NewRequest("POST", reqURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return fmt.Errorf("error creating request: %w", err)
+		return fmt.Errorf("error creating request for URL %s: %w", reqURL, err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Token "+authToken)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error making request: %w", err)
+		return fmt.Errorf("error making request to URL %s: %w", reqURL, err)
 	}
 	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Printf("Error closing response body: %s\n", err)
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			log.Printf("Error closing response body from URL %s: %s\n", reqURL, closeErr)
 		}
 	}()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("ACV API Error | Status code: %d", resp.StatusCode)
+		return fmt.Errorf("ACV API Error | Status code: %d for URL %s", resp.StatusCode, reqURL)
 	}
 
 	log.Printf("ACV API | Status code: %d\n", resp.StatusCode)
@@ -112,7 +113,7 @@ func ProcessAlarmData(user User, data []byte) error {
 
 		err = saveAlarmInAPI(detail)
 		if err != nil {
-			log.Printf("Error saving data: %s", err)
+			log.Printf("Error saving data for detail %+v: %s", detail, err)
 			continue
 		}
 	}
