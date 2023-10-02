@@ -103,6 +103,7 @@ func ProcessAlarmData(user User, data []byte) error {
 	}
 
 	var wgAlarms sync.WaitGroup
+	errChan := make(chan error, 1) // A channel to hold the first error we get
 
 	for _, detail := range details.Details {
 		wgAlarms.Add(1)
@@ -111,14 +112,24 @@ func ProcessAlarmData(user User, data []byte) error {
 			CheckAndSendAlarm(user, detail)
 		}(detail)
 
-		err = saveAlarmInAPI(detail)
-		if err != nil {
-			log.Printf("Error saving data for detail %+v: %s", detail, err)
-			continue
-		}
+		wgAlarms.Add(1)
+		go func(detail AlarmData) {
+			defer wgAlarms.Done()
+			if err := saveAlarmInAPI(detail); err != nil {
+				select {
+				case errChan <- err:
+				default:
+				}
+			}
+		}(detail)
 	}
 
 	wgAlarms.Wait()
 
-	return nil
+	select {
+	case err := <-errChan:
+		return fmt.Errorf("error saving data: %w", err)
+	default:
+		return nil
+	}
 }
