@@ -27,7 +27,6 @@ func GetUserFromApi() ([]User, error) {
 	}
 	req.Header.Add("Authorization", "Token "+authToken)
 
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("The HTTP request failed with error %v", err)

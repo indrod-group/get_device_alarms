@@ -10,6 +10,8 @@ import (
 	"os"
 )
 
+var client = &http.Client{}
+
 func GetAlarmData(user User, currentTime, interval int64) ([]byte, error) {
 	accessToken := os.Getenv("ACCESS_TOKEN")
 	imei := user.Imei
@@ -19,41 +21,71 @@ func GetAlarmData(user User, currentTime, interval int64) ([]byte, error) {
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Printf("Error: %s\n", err)
-		return nil, err
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
 	req.Header.Add("AccessToken", accessToken)
 
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("Error: %s\n", err)
-		return nil, err
+		return nil, fmt.Errorf("error making request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("error closing response body: %s\n", err)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("Error reading body: %s\n", err)
-		return nil, err
+		return nil, fmt.Errorf("error reading body: %w", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		err = fmt.Errorf("IOGPS API Error | Status code: %d, Response: %s", resp.StatusCode, string(body))
-		log.Println(err)
-		return nil, err
+		return nil, fmt.Errorf("IOGPS API Error | Status code: %d, Response: %s", resp.StatusCode, string(body))
 	}
 
 	if len(body) == 0 {
-		err = fmt.Errorf("empty response body")
-		log.Println(err)
-		return nil, err
+		return nil, fmt.Errorf("empty response body")
 	}
 
 	log.Printf("IOGPS API | Status code: %d, Imei: %s\n", resp.StatusCode, imei)
 
 	return body, nil
+}
+
+func saveAlarmInAPI(detail AlarmData) error {
+	authToken := os.Getenv("AUTH_TOKEN")
+	URL := os.Getenv("MY_API_URL")
+	detailForPost := AlarmDataForPost(detail)
+	jsonData, err := json.Marshal(detailForPost)
+	if err != nil {
+		return fmt.Errorf("error marshalling data: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", URL+"details/", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("error creating request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Token "+authToken)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("error making request: %w", err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("Error closing response body: %s\n", err)
+		}
+	}()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("ACV API Error | Status code: %d", resp.StatusCode)
+	}
+
+	log.Printf("ACV API | Status code: %d\n", resp.StatusCode)
+	return nil
 }
 
 func ProcessAlarmData(user User, data []byte) error {
@@ -62,38 +94,20 @@ func ProcessAlarmData(user User, data []byte) error {
 		return nil
 	}
 
-	authToken := os.Getenv("AUTH_TOKEN")
-	URL := os.Getenv("MY_API_URL")
 	var details ApiResponse
 	err := json.Unmarshal(data, &details)
 	if err != nil {
-		log.Printf("Error: %s", err)
-		return err
+		return fmt.Errorf("error unmarshalling data: %w", err)
 	}
 
 	for _, detail := range details.Details {
-		detailForPost := AlarmDataForPost(detail)
-		jsonData, err := json.Marshal(detailForPost)
-		if err != nil {
-			log.Printf("Error: %s", err)
-			return err
-		}
-
-		client := &http.Client{}
-		req, _ := http.NewRequest("POST", URL+"details/", bytes.NewBuffer(jsonData))
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Add("Authorization", "Token "+authToken)
-
-		resp, err := client.Do(req)
-		if err != nil {
-			log.Printf("Error: %s", err)
-			return err
-		}
-
-		log.Printf("ACV API | Status code: %d\n", resp.StatusCode)
-
-		// Call the function to check and send alarm messages
 		CheckAndSendAlarm(user, detail)
+
+		err = saveAlarmInAPI(detail)
+		if err != nil {
+			log.Printf("Error saving data: %s", err)
+			continue
+		}
 	}
 
 	return nil
