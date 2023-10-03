@@ -6,30 +6,74 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
+	"time"
 )
 
 var client = &http.Client{}
+
+func getNewUrl(imei string, startTime int64) string {
+	endTime := time.Now().Unix() // Actualiza el endTime con el tiempo actual
+	return fmt.Sprintf("https://open.iopgps.com/api/device/alarm?imei=%s&startTime=%d&endTime=%d", imei, startTime, endTime)
+}
+
+func createRequest(url, accessToken string) (*http.Request, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request for URL %s: %w", url, err)
+	}
+	req.Header.Add("AccessToken", accessToken)
+	return req, nil
+}
+
+func doRequestWithRetry(req *http.Request, imei string, startTime int64, maxRetries int, baseDelay time.Duration) (*http.Response, error) {
+	var resp *http.Response
+	var err error
+
+	for i := 0; i < maxRetries; i++ { // Número de intentos
+		resp, err = client.Do(req)
+		if err != nil {
+			if strings.Contains(err.Error(), "i/o timeout") { // Comprueba si el error es un tiempo de espera
+				log.Printf("Error making request to URL %s: %s\n", req.URL, err)
+				delay := baseDelay * time.Duration(math.Pow(2, float64(i))) // Tiempo de espera antes del próximo intento
+				time.Sleep(delay)
+				url := getNewUrl(imei, startTime)                            // Obtiene una nueva URL con el tiempo actualizado
+				req, err = createRequest(url, req.Header.Get("AccessToken")) // Crea una nueva solicitud con la nueva URL
+				if err != nil {
+					return nil, fmt.Errorf("error creating request for URL %s: %w", url, err)
+				}
+				continue
+			}
+			return nil, fmt.Errorf("error making request to URL %s: %w", req.URL, err) // Si el error no es un tiempo de espera, falla inmediatamente
+		}
+		break
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("error making request to URL %s after retries: %w", req.URL, err)
+	}
+
+	return resp, nil
+}
 
 func GetAlarmData(user User, currentTime, interval int64) ([]byte, error) {
 	accessToken := os.Getenv("ACCESS_TOKEN")
 	imei := user.Imei
 	startTime := currentTime - interval
-	endTime := currentTime
-	url := fmt.Sprintf("https://open.iopgps.com/api/device/alarm?imei=%s&startTime=%d&endTime=%d", imei, startTime, endTime)
+	url := getNewUrl(imei, startTime)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := createRequest(url, accessToken)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request for URL %s: %w", url, err)
+		return nil, err
 	}
 
-	req.Header.Add("AccessToken", accessToken)
-
-	resp, err := client.Do(req)
+	resp, err := doRequestWithRetry(req, imei, startTime, 7, 1*time.Second)
 	if err != nil {
-		return nil, fmt.Errorf("error making request to URL %s: %w", url, err)
+		return nil, err
 	}
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil {
