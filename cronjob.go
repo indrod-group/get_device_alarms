@@ -1,9 +1,10 @@
 package main
 
 import (
-	"log"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type CronJob struct {
@@ -25,13 +26,13 @@ func (c *CronJob) Start(sem *sync.WaitGroup) {
 
 	apiData, err := GetAlarmData(c.user, c.currentTime, c.interval)
 	if err != nil {
-		log.Printf("Error getting alarm data: %s\n", err)
+		logrus.WithError(err).Error("Error getting alarm data")
 		return
 	}
 
 	err = ProcessAlarmData(c.user, apiData)
 	if err != nil {
-		log.Printf("Error processing alarm data: %s\n", err)
+		logrus.WithError(err).Error("Error processing alarm data")
 		return
 	}
 

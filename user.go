@@ -2,10 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"io"
-	"log"
 	"net/http"
 	"os"
+	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type User struct {
@@ -17,33 +18,31 @@ type User struct {
 	IsTracking    bool    `json:"is_tracking"`
 }
 
+var clientUsers = &http.Client{
+	Timeout: time.Second * 10,
+}
+
 func GetUserFromApi() ([]User, error) {
 	authToken := os.Getenv("AUTH_TOKEN")
 	URL := os.Getenv("MY_API_URL")
 	req, err := http.NewRequest("GET", URL+"user/?is_tracking=True", nil)
 	if err != nil {
-		log.Printf("Failed to create request: %v", err)
+		logrus.WithError(err).Error("Failed to create request")
 		return nil, err
 	}
 	req.Header.Add("Authorization", "Token "+authToken)
 
-	resp, err := client.Do(req)
+	resp, err := clientUsers.Do(req)
 	if err != nil {
-		log.Printf("The HTTP request failed with error %v", err)
+		logrus.WithError(err).Error("The HTTP request failed")
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Failed to read response body: %v", err)
-		return nil, err
-	}
-
 	var users []User
-	err = json.Unmarshal(data, &users)
+	err = json.NewDecoder(resp.Body).Decode(&users)
 	if err != nil {
-		log.Printf("Failed to unmarshal response body: %v", err)
+		logrus.WithError(err).Error("Failed to decode response body")
 		return nil, err
 	}
 

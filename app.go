@@ -1,9 +1,10 @@
 package main
 
 import (
-	"log"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // App is a structure that holds the fields needed for the application
@@ -22,9 +23,9 @@ func (app *App) Run() {
 			var err error
 			app.token, err = getAccessToken()
 			if err != nil {
-				log.Println("Error al obtener el token de acceso:", err)
+				logrus.WithError(err).Error("Error al obtener el token de acceso")
 			} else {
-				log.Println("Token de acceso actualizado:", app.token)
+				logrus.Println("Token de acceso actualizado:", app.token)
 			}
 			<-tokenTicker.C
 		}
@@ -41,7 +42,7 @@ func (app *App) Run() {
 		for {
 			newUsers, err := GetUserFromApi()
 			if err != nil {
-				log.Println("Error al obtener los usuarios:", err)
+				logrus.WithError(err).Error("Error al obtener los usuarios")
 				app.users = originalUsers
 			} else {
 				app.users = newUsers

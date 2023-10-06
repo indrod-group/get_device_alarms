@@ -5,16 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
-)
 
-var client = &http.Client{}
+	"github.com/sirupsen/logrus"
+)
 
 func getNewUrl(imei string, startTime int64) string {
 	endTime := time.Now().Unix() // Actualiza el endTime con el tiempo actual
@@ -35,10 +34,14 @@ func doRequestWithRetry(req *http.Request, imei string, startTime int64, maxRetr
 	var err error
 
 	for i := 0; i < maxRetries; i++ { // Número de intentos
+		client := &http.Client{
+			Timeout: time.Second * 10,
+		}
+
 		resp, err = client.Do(req)
 		if err != nil {
 			if strings.Contains(err.Error(), "i/o timeout") { // Comprueba si el error es un tiempo de espera
-				log.Printf("Error making request to URL %s: %s\n", req.URL, err)
+				logrus.Errorf("Error making request to URL %s: %s\n", req.URL, err)
 				delay := baseDelay * time.Duration(math.Pow(2, float64(i))) // Tiempo de espera antes del próximo intento
 				time.Sleep(delay)
 				url := getNewUrl(imei, startTime)                            // Obtiene una nueva URL con el tiempo actualizado
@@ -77,7 +80,7 @@ func GetAlarmData(user User, currentTime, interval int64) ([]byte, error) {
 	}
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil {
-			log.Printf("error closing response body from URL %s: %s\n", url, closeErr)
+			logrus.Errorf("error closing response body from URL %s: %s\n", url, closeErr)
 		}
 	}()
 
@@ -94,7 +97,10 @@ func GetAlarmData(user User, currentTime, interval int64) ([]byte, error) {
 		return nil, fmt.Errorf("empty response body from URL %s", url)
 	}
 
-	log.Printf("IOGPS API | Status code: %d, Imei: %s\n", resp.StatusCode, imei)
+	logrus.WithFields(logrus.Fields{
+		"status_code": resp.StatusCode,
+		"imei":        imei,
+	}).Info("Successfully retrieved alarm data from IOGPS API")
 
 	return body, nil
 }
@@ -116,13 +122,16 @@ func saveAlarmInAPI(detail AlarmData) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Token "+authToken)
 
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("error making request to URL %s: %w", reqURL, err)
 	}
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil {
-			log.Printf("Error closing response body from URL %s: %s\n", reqURL, closeErr)
+			logrus.Errorf("Error closing response body from URL %s: %s\n", reqURL, closeErr)
 		}
 	}()
 
@@ -130,13 +139,13 @@ func saveAlarmInAPI(detail AlarmData) error {
 		return fmt.Errorf("ACV API Error | Status code: %d for URL %s", resp.StatusCode, reqURL)
 	}
 
-	log.Printf("ACV API | Status code: %d\n", resp.StatusCode)
+	logrus.Printf("ACV API | Status code: %d\n", resp.StatusCode)
 	return nil
 }
 
 func ProcessAlarmData(user User, data []byte) error {
 	if len(data) == 0 {
-		log.Printf("No data to process\n")
+		logrus.Warning("No data to process\n")
 		return nil
 	}
 

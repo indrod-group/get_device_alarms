@@ -1,9 +1,9 @@
 package main
 
 import (
-	"log"
 	"os"
 
+	"github.com/sirupsen/logrus"
 	"github.com/twilio/twilio-go"
 	api "github.com/twilio/twilio-go/rest/api/v2010"
 )
@@ -45,14 +45,14 @@ func SendMessage(message string) {
 
 		resp, err := client.Api.CreateMessage(params)
 		if err != nil {
-			log.Printf("Error sending message: %s\n", err.Error())
+			logrus.WithError(err).Error("Error sending message")
 			continue
 		}
 
 		if resp.Sid != nil {
-			log.Printf("Message sent successfully, SID: %s\n", *resp.Sid)
+			logrus.Printf("Message sent successfully, SID: %s\n", *resp.Sid)
 		} else {
-			log.Println("Message sent successfully, but no SID returned")
+			logrus.Warningf("Message sent successfully, but no SID returned")
 		}
 	}
 }

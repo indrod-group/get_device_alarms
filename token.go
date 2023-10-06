@@ -11,6 +11,9 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
 )
 
 type AuthRequest struct {
@@ -102,8 +105,18 @@ func readToken() (string, time.Time, error) {
 }
 
 func writeToken(token string, createdAt time.Time) {
+	time := strconv.FormatInt(createdAt.Unix(), 10)
 	os.Setenv("ACCESS_TOKEN", token)
-	os.Setenv("TIME", strconv.FormatInt(createdAt.Unix(), 10))
+	os.Setenv("TIME", time)
+	envMap := map[string]string{
+		"ACCESS_TOKEN": token,
+		"TIME":         time,
+	}
+
+	err := godotenv.Write(envMap, ".env")
+	if err != nil {
+		logrus.Fatal("Error writing to .env file")
+	}
 }
 
 func generateSignature(loginKey string, time int64) string {

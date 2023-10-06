@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // Set debug status to use the program in production
@@ -15,7 +16,7 @@ var DEBUG = os.Getenv("DEBUG") != "RENDER"
 // Otherwise, a log file is created with a timestamped name in the "logs" folder, and the log output is directed to this file.
 func initLog() {
 	if !DEBUG {
-		log.SetOutput(os.Stdout)
+		logrus.SetOutput(os.Stdout)
 	} else {
 		// Create the "logs" folder if it doesn't exist
 		if _, err := os.Stat("logs"); os.IsNotExist(err) {
@@ -37,7 +38,16 @@ func initLog() {
 			return
 		}
 
-		// Configure the log package to write to the log file
-		log.SetOutput(logFile)
+		// Configure Logrus to write to the log file
+		logrus.SetOutput(logFile)
+
+		// Set the Logrus format to JSON
+		logrus.SetFormatter(&logrus.JSONFormatter{})
+
+		// Set the Logrus level to Info
+		logrus.SetLevel(logrus.InfoLevel)
+
+		// Add a hook to send error-level logs to an external API (e.g., Loggly, Sentry, etc.)
+		// logrus.AddHook(...)
 	}
 }

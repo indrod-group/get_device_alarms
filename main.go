@@ -1,16 +1,24 @@
 package main
 
-import "log"
+import (
+	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
+)
 
 // init is a function that runs before main and initializes the log and the token
 func init() {
 	initLog()
 	var err error
+	err = godotenv.Load(".env", ".env.development")
+	if err != nil {
+		logrus.Fatal("Error loading .env file")
+	}
+
 	app.token, err = getAccessToken()
 	if err != nil {
-		log.Println("Error al obtener el token de acceso:", err)
+		logrus.Fatal("Error al obtener el token de acceso:", err)
 	} else {
-		log.Println("Token de acceso actualizado:", app.token)
+		logrus.Info("Token de acceso actualizado:", app.token)
 	}
 }
 
