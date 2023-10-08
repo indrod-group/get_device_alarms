@@ -8,6 +8,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type Config struct {
+	acvApiURL        string
+	authToken        string
+	appID            string
+	loginKey         string
+	twilioAccountSID string
+	twilioAuthToken  string
+}
+
 // Set debug status to use the program in production
 var DEBUG = os.Getenv("DEBUG") != "RENDER"
 

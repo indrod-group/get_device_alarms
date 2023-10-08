@@ -7,12 +7,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// App is a structure that holds the fields needed for the application
 type App struct {
-	token string         // The access token
-	sem   chan bool      // The semaphore channel
-	wg    sync.WaitGroup // The wait group
-	users []User         // The users
+	sem         chan bool
+	wg          sync.WaitGroup
+	users       []User
+	accessToken string
+	config      Config
 }
 
 // Run is a method that runs the main logic of the application
@@ -21,11 +21,11 @@ func (app *App) Run() {
 	go func() {
 		for {
 			var err error
-			app.token, err = getAccessToken()
+			app.accessToken, err = getAccessToken()
 			if err != nil {
-				logrus.WithError(err).Error("Error al obtener el token de acceso")
+				logrus.WithError(err).Fatal("Error al obtener el token de acceso")
 			} else {
-				logrus.Println("Token de acceso actualizado:", app.token)
+				logrus.Println("Token de acceso actualizado:", app.accessToken)
 			}
 			<-tokenTicker.C
 		}

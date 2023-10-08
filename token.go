@@ -32,8 +32,6 @@ type AuthResponse struct {
 const serviceURL string = "https://open.iopgps.com/api/auth"
 
 func getAccessToken() (string, error) {
-	appid := os.Getenv("APPID")
-	loginKey := os.Getenv("LOGIN_KEY")
 	token, createdAt, err := readToken()
 	if err != nil {
 		return "", err
@@ -45,10 +43,10 @@ func getAccessToken() (string, error) {
 
 	timeNow := time.Now()
 	currentTime := timeNow.Unix()
-	signature := generateSignature(loginKey, currentTime)
+	signature := generateSignature(app.config.loginKey, currentTime)
 
 	authRequest := AuthRequest{
-		Appid:     appid,
+		Appid:     app.config.appID,
 		Time:      currentTime,
 		Signature: signature,
 	}
@@ -105,6 +103,7 @@ func readToken() (string, time.Time, error) {
 }
 
 func writeToken(token string, createdAt time.Time) {
+	app.accessToken = token
 	time := strconv.FormatInt(createdAt.Unix(), 10)
 	os.Setenv("ACCESS_TOKEN", token)
 	os.Setenv("TIME", time)

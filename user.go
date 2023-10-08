@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -23,14 +22,12 @@ var clientUsers = &http.Client{
 }
 
 func GetUserFromApi() ([]User, error) {
-	authToken := os.Getenv("AUTH_TOKEN")
-	URL := os.Getenv("MY_API_URL")
-	req, err := http.NewRequest("GET", URL+"user/?is_tracking=True", nil)
+	req, err := http.NewRequest("GET", app.config.acvApiURL+"user/?is_tracking=True", nil)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to create request")
 		return nil, err
 	}
-	req.Header.Add("Authorization", "Token "+authToken)
+	req.Header.Add("Authorization", "Token "+app.config.authToken)
 
 	resp, err := clientUsers.Do(req)
 	if err != nil {

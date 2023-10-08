@@ -10,7 +10,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"sync"
 	"time"
 
@@ -22,12 +21,12 @@ func getNewUrl(imei string, startTime int64) string {
 	return fmt.Sprintf("https://open.iopgps.com/api/device/alarm?imei=%s&startTime=%d&endTime=%d", imei, startTime, endTime)
 }
 
-func createRequest(url, accessToken string) (*http.Request, error) {
+func createRequest(url string) (*http.Request, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request for URL %s: %w", url, err)
 	}
-	req.Header.Add("AccessToken", accessToken)
+	req.Header.Add("AccessToken", app.accessToken)
 	return req, nil
 }
 
@@ -79,12 +78,11 @@ func readResponseBody(resp *http.Response) ([]byte, error) {
 }
 
 func GetAlarmData(user User, currentTime, interval int64) ([]byte, error) {
-	accessToken := os.Getenv("ACCESS_TOKEN")
 	imei := user.Imei
 	startTime := currentTime - interval
 	uri := getNewUrl(imei, startTime)
 
-	req, err := createRequest(uri, accessToken)
+	req, err := createRequest(uri)
 	if err != nil {
 		return nil, err
 	}
@@ -128,21 +126,19 @@ func GetAlarmData(user User, currentTime, interval int64) ([]byte, error) {
 }
 
 func saveAlarmInAPI(detail AlarmData) error {
-	authToken := os.Getenv("AUTH_TOKEN")
-	URL := os.Getenv("MY_API_URL")
 	detailForPost := AlarmDataForPost(detail)
 	jsonData, err := json.Marshal(detailForPost)
 	if err != nil {
 		return fmt.Errorf("error marshalling data for detail %+v: %w", detailForPost, err)
 	}
 
-	reqURL := URL + "details/"
+	reqURL := app.config.acvApiURL + "details/"
 	req, err := http.NewRequest("POST", reqURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("error creating request for URL %s: %w", reqURL, err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Add("Authorization", "Token "+authToken)
+	req.Header.Add("Authorization", "Token "+app.config.authToken)
 
 	resp, err := client.Do(req)
 	if err != nil {

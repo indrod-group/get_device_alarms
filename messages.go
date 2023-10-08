@@ -1,8 +1,6 @@
 package main
 
 import (
-	"os"
-
 	"github.com/sirupsen/logrus"
 	"github.com/twilio/twilio-go"
 	api "github.com/twilio/twilio-go/rest/api/v2010"
@@ -24,11 +22,9 @@ Example Usage:
 This code will send the message "Hello, World!" to the three WhatsApp numbers specified in the `numbers` array.
 */
 func SendMessage(message string) {
-	accountSid := os.Getenv("TWILIO_ACCOUNT_SID")
-	authToken := os.Getenv("TWILIO_AUTH_TOKEN")
 	client := twilio.NewRestClientWithParams(twilio.ClientParams{
-		Username: accountSid,
-		Password: authToken,
+		Username: app.config.twilioAccountSID,
+		Password: app.config.twilioAuthToken,
 	})
 
 	numbers := []string{
