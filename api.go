@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/rand"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -29,72 +31,95 @@ func createRequest(url, accessToken string) (*http.Request, error) {
 	return req, nil
 }
 
+var client = &http.Client{
+	Timeout: time.Second * 10,
+}
+
 func doRequestWithRetry(req *http.Request, imei string, startTime int64, maxRetries int, baseDelay time.Duration) (*http.Response, error) {
-	var resp *http.Response
-	var err error
-
-	for i := 0; i < maxRetries; i++ { // Número de intentos
-		client := &http.Client{
-			Timeout: time.Second * 10,
+	for i := 0; i < maxRetries; i++ {
+		resp, err := client.Do(req)
+		if resp != nil && err == nil {
+			resp.Body.Close()
 		}
-
-		resp, err = client.Do(req)
 		if err != nil {
-			if strings.Contains(err.Error(), "i/o timeout") { // Comprueba si el error es un tiempo de espera
-				logrus.Errorf("Error making request to URL %s: %s\n", req.URL, err)
-				delay := baseDelay * time.Duration(math.Pow(2, float64(i))) // Tiempo de espera antes del próximo intento
-				time.Sleep(delay)
-				url := getNewUrl(imei, startTime)                            // Obtiene una nueva URL con el tiempo actualizado
-				req, err = createRequest(url, req.Header.Get("AccessToken")) // Crea una nueva solicitud con la nueva URL
+			if resp != nil {
+				resp.Body.Close()
+			}
+			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				logrus.Errorf("Timeout Error making request to URL %s: %s\n", req.URL, err)
+				delay := baseDelay * time.Duration(math.Pow(2, float64(i)))
+				jitter := time.Duration(rand.Int63n(int64(delay)))
+				sleepTime := delay + jitter
+				time.Sleep(sleepTime)
+				uri := getNewUrl(imei, startTime)
+				req.URL, err = url.Parse(uri)
 				if err != nil {
-					return nil, fmt.Errorf("error creating request for URL %s: %w", url, err)
+					return nil, fmt.Errorf("error creating request for URL %s: %w", uri, err)
 				}
 				continue
 			}
-			return nil, fmt.Errorf("error making request to URL %s: %w", req.URL, err) // Si el error no es un tiempo de espera, falla inmediatamente
+			return nil, fmt.Errorf("error making request to URL %s: %w", req.URL, err)
 		}
-		break
+		return resp, nil
 	}
+	return nil, fmt.Errorf("error making request to URL %s after retries", req.URL)
+}
 
+func readResponseBody(resp *http.Response) ([]byte, error) {
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			logrus.Errorf("error closing response body from URL %s: %s\n", resp.Request.URL, closeErr)
+		}
+	}()
+
+	var buf bytes.Buffer
+	_, err := io.Copy(&buf, resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("error making request to URL %s after retries: %w", req.URL, err)
+		return nil, fmt.Errorf("error reading body from URL %s: %w", resp.Request.URL, err)
 	}
-
-	return resp, nil
+	body := buf.Bytes()
+	return body, nil
 }
 
 func GetAlarmData(user User, currentTime, interval int64) ([]byte, error) {
 	accessToken := os.Getenv("ACCESS_TOKEN")
 	imei := user.Imei
 	startTime := currentTime - interval
-	url := getNewUrl(imei, startTime)
+	uri := getNewUrl(imei, startTime)
 
-	req, err := createRequest(url, accessToken)
+	req, err := createRequest(uri, accessToken)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := doRequestWithRetry(req, imei, startTime, 7, 1*time.Second)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if closeErr := resp.Body.Close(); closeErr != nil {
-			logrus.Errorf("error closing response body from URL %s: %s\n", url, closeErr)
+	var wg sync.WaitGroup
+	var resp *http.Response
+	var respErr error
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		resp, respErr = doRequestWithRetry(req, imei, startTime, 7, 1*time.Second)
+		if respErr != nil && resp != nil {
+			resp.Body.Close()
 		}
 	}()
+	wg.Wait()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading body from URL %s: %w", url, err)
+	if respErr != nil {
+		resp.Body.Close()
+		return nil, err
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("IOGPS API Error | Status code: %d, Response: %s", resp.StatusCode, string(body))
+		resp.Body.Close()
+		return nil, err
 	}
 
+	body, err := readResponseBody(resp)
+
 	if len(body) == 0 {
-		return nil, fmt.Errorf("empty response body from URL %s", url)
+		return nil, err
 	}
 
 	logrus.WithFields(logrus.Fields{
@@ -122,9 +147,6 @@ func saveAlarmInAPI(detail AlarmData) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Token "+authToken)
 
-	client := &http.Client{
-		Timeout: time.Second * 10,
-	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("error making request to URL %s: %w", reqURL, err)
