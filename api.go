@@ -38,9 +38,6 @@ var client = &http.Client{
 func doRequestWithRetry(req *http.Request, imei string, startTime int64, maxRetries int, baseDelay time.Duration) (*http.Response, error) {
 	for i := 0; i < maxRetries; i++ {
 		resp, err := client.Do(req)
-		if resp != nil && err == nil {
-			resp.Body.Close()
-		}
 		if err != nil {
 			if resp != nil {
 				resp.Body.Close()
