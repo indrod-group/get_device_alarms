@@ -87,32 +87,17 @@ func GetAlarmData(user User, currentTime, interval int64) ([]byte, error) {
 		return nil, err
 	}
 
-	var wg sync.WaitGroup
-	var resp *http.Response
-	var respErr error
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		resp, respErr = doRequestWithRetry(req, imei, startTime, 7, 1*time.Second)
-		if respErr != nil && resp != nil {
-			resp.Body.Close()
-		}
-	}()
-	wg.Wait()
-
+	resp, respErr := doRequestWithRetry(req, imei, startTime, 7, 1*time.Second)
 	if respErr != nil {
-		resp.Body.Close()
-		return nil, err
+		return nil, respErr
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		resp.Body.Close()
 		return nil, err
 	}
 
 	body, err := readResponseBody(resp)
-
 	if len(body) == 0 {
 		return nil, err
 	}
