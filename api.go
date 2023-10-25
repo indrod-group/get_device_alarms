@@ -30,12 +30,11 @@ func createRequest(url string) (*http.Request, error) {
 	return req, nil
 }
 
-var client = &http.Client{
-	Timeout: time.Second * 10,
-}
-
 func doRequestWithRetry(req *http.Request, imei string, startTime int64, maxRetries int, baseDelay time.Duration) (*http.Response, error) {
 	for i := 0; i < maxRetries; i++ {
+		client := &http.Client{
+			Timeout: time.Second * 10,
+		}
 		resp, err := client.Do(req)
 		if err != nil {
 			if resp != nil {
@@ -125,6 +124,9 @@ func saveAlarmInAPI(detail AlarmData) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Token "+app.config.authToken)
 
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("error making request to URL %s: %w", reqURL, err)
