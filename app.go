@@ -8,31 +8,14 @@ import (
 )
 
 type App struct {
-	sem         chan bool
-	wg          sync.WaitGroup
-	users       []User
-	accessToken string
-	config      Config
+	sem    chan bool
+	wg     sync.WaitGroup
+	users  []User
+	config Config
 }
 
 // Run is a method that runs the main logic of the application
 func (app *App) Run() {
-	tokenTicker := time.NewTicker(10 * time.Minute)
-	go func() {
-		for {
-			var err error
-			app.accessToken, err = getAccessToken()
-			if err != nil {
-				logrus.WithError(err).Fatal("Error al obtener el token de acceso")
-			} else {
-				logrus.Println("Token de acceso actualizado:", app.accessToken)
-			}
-			<-tokenTicker.C
-		}
-	}()
-
-	time.Sleep(5 * time.Second)
-
 	app.sem = make(chan bool, 10)
 
 	originalUsers := app.users

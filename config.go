@@ -11,8 +11,6 @@ import (
 type Config struct {
 	acvApiURL        string
 	authToken        string
-	appID            string
-	loginKey         string
 	twilioAccountSID string
 	twilioAuthToken  string
 }

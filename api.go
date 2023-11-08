@@ -26,7 +26,13 @@ func createRequest(url string) (*http.Request, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error creating request for URL %s: %w", url, err)
 	}
-	req.Header.Add("AccessToken", app.accessToken)
+
+	token, err := authenticator.GetAccessToken()
+	if err != nil {
+		return nil, fmt.Errorf("error getting token: %s", err)
+	}
+
+	req.Header.Add("AccessToken", token)
 	return req, nil
 }
 
