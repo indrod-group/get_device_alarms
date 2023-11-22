@@ -1,0 +1,55 @@
+@startuml design
+
+interface Handler {
+    Handle(interface{}) (interface{}, error)
+    SetNext(Handler)
+}
+
+class DeviceController implements Handler {
+    next : Handler
+    SetNext(Handler)
+    Handle(interface{}) (interface{}, error)
+    getDevices() ([]Device, error)
+}
+class Device {
+    + Imei
+	+ UserName
+	+ CarOwner
+	+ LicenseNumber
+	+ Vin
+	+ IsTrackingAlarms
+	+ LastTimeTracked
+}
+
+DeviceController -down-> "*" Device
+
+class RequestGenerator implements Handler {
+    next : Handler
+    SetNext(Handler)
+    Handle(interface{}) (interface{}, error)
+}
+
+class RequestExecutor implements Handler {
+    next : Handler
+    SetNext(Handler)
+    Handle(interface{}) (interface{}, error)
+}
+
+class DataSaver implements Handler {
+    next : Handler
+    SetNext(Handler)
+    Handle(interface{}) (interface{}, error)
+}
+
+class Director {
+    first : Handler
+    BuildChain()
+    ProcessRequest(interface{}) (interface{}, error)
+}
+
+DeviceController -right-> RequestGenerator
+RequestGenerator -right-> RequestExecutor
+RequestExecutor -right-> DataSaver
+Director -down-> DeviceController
+
+@enduml

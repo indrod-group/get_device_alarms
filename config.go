@@ -8,15 +8,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Config struct {
-	acvApiURL        string
-	authToken        string
-	twilioAccountSID string
-	twilioAuthToken  string
-}
-
 // Set debug status to use the program in production
-var DEBUG = os.Getenv("DEBUG") != "RENDER"
+var DEBUG = os.Getenv("DEBUG") != "PRODUCTION"
 
 // Initialize the logging configuration based on the value of the DEBUG environment variable.
 // If DEBUG is not set to "RENDER", the log output is directed to the standard output.
