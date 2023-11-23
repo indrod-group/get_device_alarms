@@ -106,10 +106,7 @@ func (a *Authenticator) parseAuthResponse(response *http.Response) (*AuthRespons
 		return nil, err
 	}
 
-	if authResponse.Code == 0 {
-		fmt.Println("Autenticación exitosa. Access Token:", authResponse.AccessToken)
-	} else {
-		fmt.Println("Error al autenticar. Código:", authResponse.Code, "Resultado:", authResponse.Result)
+	if authResponse.Code != 0 {
 		return nil, fmt.Errorf("error al autenticar: %s", *authResponse.Result)
 	}
 
