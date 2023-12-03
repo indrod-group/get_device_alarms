@@ -28,7 +28,7 @@ func InitAuthenticator() *Authenticator {
 		accessToken: os.Getenv("ACCESS_TOKEN"),
 		appID:       os.Getenv("APPID"),
 		loginKey:    os.Getenv("LOGIN_KEY"),
-		serviceURL:  os.Getenv("MY_API_URL"),
+		serviceURL:  "https://open.iopgps.com/api/auth",
 	}
 }
 
@@ -85,7 +85,6 @@ func (a *Authenticator) sendAuthRequest(authRequest AuthRequest) (*http.Response
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", response.StatusCode)
@@ -99,6 +98,7 @@ func (a *Authenticator) parseAuthResponse(response *http.Response) (*AuthRespons
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
 
 	var authResponse AuthResponse
 	err = json.Unmarshal(body, &authResponse)
