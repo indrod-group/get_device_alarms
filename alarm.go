@@ -25,7 +25,7 @@ type Alarm struct {
 const ALARMS_API_URL = "http://127.0.0.1:8001/api/v1/alarms/"
 
 func (a *Alarm) CreateAlarm() error {
-	var API_KEY = os.Getenv("API_KEY")
+	var apiKey = os.Getenv("API_KEY")
 
 	jsonAlarm, err := json.Marshal(a)
 	if err != nil {
@@ -39,7 +39,7 @@ func (a *Alarm) CreateAlarm() error {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Token %s", API_KEY))
+	req.Header.Set("Authorization", fmt.Sprintf("Token %s", apiKey))
 
 	resp, err := client.Do(req)
 	if err != nil {

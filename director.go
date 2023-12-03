@@ -26,10 +26,12 @@ func (d *Director) BuildChain() {
 	requestGenerator := &RequestGenerator{}
 	requestExecutor := &RequestExecutor{}
 	dataSaver := &DataSaver{}
+	messageSender := &MessageSender{}
 
 	deviceController.SetNext(requestGenerator)
 	requestGenerator.SetNext(requestExecutor)
 	requestExecutor.SetNext(dataSaver)
+	dataSaver.SetNext(messageSender)
 
 	d.first = deviceController
 }

@@ -15,12 +15,12 @@ type DeviceController struct {
 }
 
 func (dc *DeviceController) getDevices() ([]Device, error) {
-	var API_KEY = os.Getenv("API_KEY")
+	var apiKey = os.Getenv("API_KEY")
 	req, err := http.NewRequest("GET", DEVICES_API_URL+"?is_tracking_alarms=true", nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add("Authorization", "Token "+API_KEY)
+	req.Header.Add("Authorization", "Token "+apiKey)
 
 	// Create a context with a timeout of 10 seconds
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

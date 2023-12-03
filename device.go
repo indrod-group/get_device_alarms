@@ -37,7 +37,7 @@ func (d *Device) GenerateURL() string {
 }
 
 func (d *Device) UpdateDevice() error {
-	var API_KEY = os.Getenv("API_KEY")
+	var apiKey = os.Getenv("API_KEY")
 
 	jsonDevice, err := json.Marshal(d)
 	if err != nil {
@@ -51,7 +51,7 @@ func (d *Device) UpdateDevice() error {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Token %s", API_KEY))
+	req.Header.Set("Authorization", fmt.Sprintf("Token %s", apiKey))
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -64,4 +64,30 @@ func (d *Device) UpdateDevice() error {
 	}
 
 	return nil
+}
+
+func GetDeviceByImei(imei string) (*Device, error) {
+	var apiKey = os.Getenv("API_KEY")
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s/", DEVICES_API_URL, imei), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Token %s", apiKey))
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var device Device
+	err = json.NewDecoder(resp.Body).Decode(&device)
+	if err != nil {
+		return nil, err
+	}
+
+	return &device, nil
 }
