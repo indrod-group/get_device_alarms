@@ -1,4 +1,4 @@
-module alarms_notifications
+module github.com/indrod-group/get_device_alarms
 
 go 1.21
 
