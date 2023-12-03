@@ -21,9 +21,9 @@ func TestUpdateDevice(t *testing.T) {
 	}
 
 	httpmock.RegisterResponder(
-		"PUT",
+		"POST",
 		DEVICES_API_URL,
-		httpmock.NewStringResponder(200, `{"success": true}`),
+		httpmock.NewStringResponder(201, `{"success": true}`),
 	)
 
 	err := device.UpdateDevice()
@@ -32,7 +32,7 @@ func TestUpdateDevice(t *testing.T) {
 	}
 
 	httpmock.RegisterResponder(
-		"PUT",
+		"POST",
 		DEVICES_API_URL,
 		httpmock.NewStringResponder(500, `{"success": false}`),
 	)
