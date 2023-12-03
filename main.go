@@ -1,8 +1,7 @@
 package main
 
 import (
-	"alarm_notifications/auth"
-
+	"github.com/indrod-group/get_device_alarms/auth"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 )

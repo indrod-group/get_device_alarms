@@ -14,6 +14,7 @@ type Alarm struct {
 	Lat          *string `json:"lat,omitempty"`
 	Lng          *string `json:"lng,omitempty"`
 	Time         int64   `json:"time"`
+	Address      *string `json:"address,omitempty"`
 	AlarmCode    string  `json:"alarm_code"`
 	AlarmType    int64   `json:"alarm_type"`
 	Course       *int64  `json:"course,omitempty"`

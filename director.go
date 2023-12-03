@@ -44,15 +44,15 @@ func (d *Director) ProcessRequest(request interface{}) (interface{}, error) {
 func InitiateTrackingAlarms() {
 	director := GetDirectorInstance()
 	director.BuildChain()
-
-	ticker := time.NewTicker(1 * time.Minute)
+	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	for range ticker.C {
+	for {
 		request := "None"
 		_, err := director.ProcessRequest(request)
 		if err != nil {
 			logrus.Println(err)
 		}
+		<-ticker.C
 	}
 }

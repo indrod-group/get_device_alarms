@@ -1,10 +1,10 @@
 package main
 
 import (
-	"alarm_notifications/auth"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -24,7 +24,7 @@ func (re *RequestExecutor) Handle(data interface{}) (interface{}, error) {
 	var mutex sync.Mutex
 	var wg sync.WaitGroup
 
-	sem := make(chan struct{}, 3)
+	sem := make(chan struct{}, 10)
 
 	for _, url := range urls {
 		wg.Add(1)
@@ -78,11 +78,7 @@ func createRequest(url string) (*http.Request, error) {
 		return nil, fmt.Errorf("error creating request for URL %s: %w", url, err)
 	}
 
-	authenticator := auth.InitAuthenticator()
-	token, err := authenticator.GetAccessToken()
-	if err != nil {
-		return nil, fmt.Errorf("error getting token: %s", err)
-	}
+	token := os.Getenv("ACCESS_TOKEN")
 
 	req.Header.Add("AccessToken", token)
 	return req, nil
