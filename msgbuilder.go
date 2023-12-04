@@ -37,13 +37,14 @@ func (mb *MessageBuilder) getAlarmAddress() string {
 }
 
 func (mb *MessageBuilder) getGoogleMapsLink() string {
+	const googleMapsLinkBase = "https://www.google.com/maps/search/?api=1&query=%s,%s"
 	if mb.alarm.Lat == nil || mb.alarm.Lng == nil {
 		return ""
 	}
 	if *mb.alarm.Lat == "" || *mb.alarm.Lng == "" {
 		return ""
 	}
-	return fmt.Sprintf("https://www.google.com/maps/?q=%s,%s", *mb.alarm.Lat, *mb.alarm.Lng)
+	return fmt.Sprintf(googleMapsLinkBase, *mb.alarm.Lat, *mb.alarm.Lng)
 }
 
 func (mb *MessageBuilder) BuildMessage() string {
