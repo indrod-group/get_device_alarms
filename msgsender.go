@@ -29,6 +29,9 @@ Example Usage:
 This code will send the message "Hello, World!" to the three WhatsApp numbers specified in the numbers array.
 */
 func SendMessage(message string) {
+	if discardMessage(message) {
+		return
+	}
 	client := twilio.NewRestClientWithParams(twilio.ClientParams{
 		Username: os.Getenv("TWILIO_ACCOUNT_SID"),
 		Password: os.Getenv("TWILIO_AUTH_TOKEN"),
@@ -58,6 +61,14 @@ func SendMessage(message string) {
 			logrus.Warningf("Message sent successfully, but no SID returned")
 		}
 	}
+}
+
+func discardMessage(message string) bool {
+	if message == "" {
+		logrus.Warningf("Discarding message: %s", message)
+		return true
+	}
+	return false
 }
 
 func (ms *MessageSender) Handle(data interface{}) (interface{}, error) {
