@@ -29,7 +29,21 @@ func (mb *MessageBuilder) getAlarmAddress() string {
 	if address == nil {
 		return defaultLocation
 	}
+	googleMapsLink := mb.getGoogleMapsLink()
+	if googleMapsLink != "" {
+		return mb.addDetail("Ubicación", *address) + "\nEnlace a Google Maps: " + googleMapsLink
+	}
 	return mb.addDetail("Ubicación", *address)
+}
+
+func (mb *MessageBuilder) getGoogleMapsLink() string {
+	if mb.alarm.Lat == nil || mb.alarm.Lng == nil {
+		return ""
+	}
+	if *mb.alarm.Lat == "" || *mb.alarm.Lng == "" {
+		return ""
+	}
+	return fmt.Sprintf("https://www.google.com/maps/?q=%s,%s", *mb.alarm.Lat, *mb.alarm.Lng)
 }
 
 func (mb *MessageBuilder) BuildMessage() string {
@@ -40,8 +54,8 @@ func (mb *MessageBuilder) BuildMessage() string {
 	message += mb.addDetail("Propietario", carOwner)
 	message += mb.addDetail("Placa del vehículo", licenseNumber)
 	message += mb.addDetail("Vin", vin)
-	message += mb.getAlarmAddress()
 	message += fmt.Sprintf("\nHora de alarma: %s", localTime)
+	message += mb.getAlarmAddress()
 	return message
 }
 
