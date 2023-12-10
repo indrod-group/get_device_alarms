@@ -39,7 +39,6 @@ func SendMessage(message string) {
 
 	numbers := []string{
 		"whatsapp:+593979368744",
-		"whatsapp:+593984924265",
 		"whatsapp:+593987129357",
 	}
 

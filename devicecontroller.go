@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 )
@@ -14,11 +15,18 @@ type DeviceController struct {
 	lastDevices []Device
 }
 
-const TRACKED_DEVICES_API_URL = "http://127.0.0.1:8001/api/v1/devices/?is_tracking_alarms=true"
-
-func (dc *DeviceController) getDevices() ([]Device, error) {
+func (dc *DeviceController) getDevices(queryParams map[string]string) ([]Device, error) {
 	var apiKey = os.Getenv("API_KEY")
-	req, err := http.NewRequest("GET", TRACKED_DEVICES_API_URL, nil)
+
+	// Create a new URL and set the raw query to the encoded query parameters
+	u, _ := url.Parse(DEVICES_API_URL)
+	q := u.Query()
+	for key, value := range queryParams {
+		q.Set(key, value)
+	}
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +61,11 @@ func (dc *DeviceController) getDevices() ([]Device, error) {
 }
 
 func (dc *DeviceController) Handle(data interface{}) (interface{}, error) {
-	devices, err := dc.getDevices()
+	queryParams, ok := data.(map[string]string)
+	if !ok {
+		return nil, errors.New("data is not of type map[string]string")
+	}
+	devices, err := dc.getDevices(queryParams)
 	if err != nil {
 		devices = dc.lastDevices
 	}

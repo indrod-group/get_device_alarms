@@ -18,7 +18,7 @@ func (ds *DataSaver) Handle(data interface{}) (interface{}, error) {
 	var wg sync.WaitGroup
 	var mutex sync.Mutex
 	var allAlarms []Alarm
-	sem := make(chan struct{}, 100)
+	sem := make(chan struct{}, 50)
 
 	for _, data := range alarmData {
 		wg.Add(1)

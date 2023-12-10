@@ -21,7 +21,7 @@ func (rg *RequestGenerator) Handle(data interface{}) (interface{}, error) {
 	urls := make([]string, len(devices))
 	var wg sync.WaitGroup
 
-	sem := make(chan struct{}, 25)
+	sem := make(chan struct{}, 1000)
 
 	for i, device := range devices {
 		wg.Add(1)

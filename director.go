@@ -50,8 +50,10 @@ func InitiateTrackingAlarms() {
 	defer ticker.Stop()
 
 	for {
-		request := "None"
-		_, err := director.ProcessRequest(request)
+		queryParams := map[string]string{
+			"is_tracking_alarms": "true",
+		}
+		_, err := director.ProcessRequest(queryParams)
 		if err != nil {
 			logrus.Println(err)
 		}

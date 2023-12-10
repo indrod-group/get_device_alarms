@@ -24,7 +24,7 @@ func (re *RequestExecutor) Handle(data interface{}) (interface{}, error) {
 	var mutex sync.Mutex
 	var wg sync.WaitGroup
 
-	sem := make(chan struct{}, 10)
+	sem := make(chan struct{}, 1000)
 
 	for _, url := range urls {
 		wg.Add(1)
