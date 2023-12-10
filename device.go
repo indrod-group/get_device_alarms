@@ -3,10 +3,13 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
+	"unicode"
 )
 
 // Device represents a device with various properties.
@@ -66,11 +69,31 @@ func (d *Device) UpdateDevice() error {
 	return nil
 }
 
+// CleanAndValidateIMEI removes whitespace from the IMEI and checks that all characters are digits.
+func CleanAndValidateIMEI(imei string) (string, error) {
+	cleanIMEI := strings.ReplaceAll(imei, " ", "")
+
+	for _, char := range cleanIMEI {
+		if !unicode.IsDigit(char) {
+			return "", errors.New("IMEI contains non-digit characters")
+		}
+	}
+
+	return cleanIMEI, nil
+}
+
+const DEVICE_INFO_URL = "http://127.0.0.1:8001/api/v1/devices/%s/"
+
 func GetDeviceByImei(imei string) (*Device, error) {
 	var apiKey = os.Getenv("API_KEY")
 
+	cleanIMEI, err := CleanAndValidateIMEI(imei)
+	if err != nil {
+		return nil, err
+	}
+
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s/", DEVICES_API_URL, imei), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf(DEVICE_INFO_URL, cleanIMEI), nil)
 	if err != nil {
 		return nil, err
 	}
