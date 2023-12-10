@@ -89,27 +89,32 @@ func GetDeviceByImei(imei string) (*Device, error) {
 
 	cleanIMEI, err := CleanAndValidateIMEI(imei)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to clean and validate IMEI: %w", err)
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", fmt.Sprintf(DEVICE_INFO_URL, cleanIMEI), nil)
+	url := fmt.Sprintf(DEVICE_INFO_URL, cleanIMEI)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create new request: %w", err)
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Token %s", apiKey))
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to do request: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("received non-200 response status: %d", resp.StatusCode)
+	}
 
 	var device Device
 	err = json.NewDecoder(resp.Body).Decode(&device)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to decode response body: %w", err)
 	}
 
 	return &device, nil
