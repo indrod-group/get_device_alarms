@@ -14,9 +14,11 @@ type DeviceController struct {
 	lastDevices []Device
 }
 
+const TRACKED_DEVICES_API_URL = "http://127.0.0.1:8001/api/v1/devices/?is_tracking_alarms=true"
+
 func (dc *DeviceController) getDevices() ([]Device, error) {
 	var apiKey = os.Getenv("API_KEY")
-	req, err := http.NewRequest("GET", DEVICES_API_URL+"?is_tracking_alarms=true", nil)
+	req, err := http.NewRequest("GET", TRACKED_DEVICES_API_URL, nil)
 	if err != nil {
 		return nil, err
 	}
