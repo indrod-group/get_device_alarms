@@ -16,6 +16,13 @@ type RequestExecutor struct {
 	next Handler
 }
 
+// Don't change this value by any reason.
+const MAX_REQUESTS_IN_WWT_API_PER_SECOND = 10
+
+// This function handles a slice of URLs by sending requests to each URL and collecting the alarm data from the responses.
+// It limits the number of concurrent requests to MAX_REQUEST_PER_SECOND using a semaphore channel.
+// It uses a mutex to protect the shared slice of alarm data and a wait group to synchronize the goroutines.
+// It passes the collected alarm data to the next handler in the chain, if any, or returns it as the final result.
 func (re *RequestExecutor) Handle(data interface{}) (interface{}, error) {
 	urls, ok := data.([]string)
 	if !ok {
@@ -26,7 +33,7 @@ func (re *RequestExecutor) Handle(data interface{}) (interface{}, error) {
 	var mutex sync.Mutex
 	var wg sync.WaitGroup
 
-	sem := make(chan struct{}, 10)
+	sem := make(chan struct{}, MAX_REQUESTS_IN_WWT_API_PER_SECOND)
 
 	for _, url := range urls {
 		wg.Add(1)

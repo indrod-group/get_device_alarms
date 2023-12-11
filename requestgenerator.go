@@ -11,6 +11,8 @@ type RequestGenerator struct {
 	next Handler
 }
 
+const MAX_DEVICES_FOR_UPDATE = 22
+
 func (rg *RequestGenerator) Handle(data interface{}) (interface{}, error) {
 	devices, ok := data.([]Device)
 	if !ok {
@@ -21,7 +23,7 @@ func (rg *RequestGenerator) Handle(data interface{}) (interface{}, error) {
 	urls := make([]string, len(devices))
 	var wg sync.WaitGroup
 
-	sem := make(chan struct{}, 1000)
+	sem := make(chan struct{}, MAX_DEVICES_FOR_UPDATE)
 
 	for i, device := range devices {
 		wg.Add(1)

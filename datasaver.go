@@ -9,6 +9,8 @@ type DataSaver struct {
 	next Handler
 }
 
+const MAX_ALARMS_TO_REGISTER = 10
+
 func (ds *DataSaver) Handle(data interface{}) (interface{}, error) {
 	alarmData, ok := data.([]AlarmData)
 	if !ok {
@@ -18,7 +20,7 @@ func (ds *DataSaver) Handle(data interface{}) (interface{}, error) {
 	var wg sync.WaitGroup
 	var mutex sync.Mutex
 	var allAlarms []Alarm
-	sem := make(chan struct{}, 50)
+	sem := make(chan struct{}, MAX_ALARMS_TO_REGISTER)
 
 	for _, data := range alarmData {
 		wg.Add(1)
