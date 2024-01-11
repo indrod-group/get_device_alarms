@@ -12,6 +12,7 @@ import (
 
 type MessageSender struct {
 	next Handler
+	mu   sync.Mutex
 }
 
 /*
@@ -82,7 +83,9 @@ func (ms *MessageSender) Handle(data interface{}) (interface{}, error) {
 	var filteredAlarms []Alarm
 	for _, alarm := range alarms {
 		if alarm.AlarmCode == "SOS" || alarm.AlarmCode == "LOWVOT" || alarm.AlarmCode == "REMOVE" {
+			ms.mu.Lock()
 			filteredAlarms = append(filteredAlarms, alarm)
+			ms.mu.Unlock()
 		}
 	}
 
