@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 	"github.com/twilio/twilio-go"
@@ -80,25 +81,37 @@ func (ms *MessageSender) Handle(data interface{}) (interface{}, error) {
 
 	var filteredAlarms []Alarm
 	for _, alarm := range alarms {
-		if alarm.AlarmCode == "LOWVOT" || alarm.AlarmCode == "SOS" || alarm.AlarmCode == "REMOVE" {
+		if alarm.AlarmCode == "SOS" || alarm.AlarmCode == "LOWVOT" || alarm.AlarmCode == "REMOVE" {
 			filteredAlarms = append(filteredAlarms, alarm)
 		}
 	}
 
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 25)
+
 	for _, alarm := range filteredAlarms {
-		device, err := GetDeviceByImei(alarm.Imei)
-		if err != nil {
-			logrus.WithError(err).Error("Error getting device by IMEI")
-			continue
-		}
-		if device == nil {
-			logrus.Warning("Device is nil")
-			continue
-		}
-		mb := NewMessageBuilder(device, &alarm)
-		message := mb.BuildMessage()
-		SendMessage(message)
+		wg.Add(1)
+		go func(alarm Alarm) {
+			defer wg.Done()
+			sem <- struct{}{}        // Acquire a token
+			defer func() { <-sem }() // Release the token back into the pool
+
+			device, err := GetDeviceByImei(alarm.Imei)
+			if err != nil {
+				logrus.WithError(err).Error("Error getting device by IMEI")
+				return
+			}
+			if device == nil {
+				logrus.Warning("Device is nil")
+				return
+			}
+			mb := NewMessageBuilder(device, &alarm)
+			message := mb.BuildMessage()
+			SendMessage(message)
+		}(alarm)
 	}
+
+	wg.Wait()
 
 	if ms.next != nil {
 		return ms.next.Handle(filteredAlarms)
