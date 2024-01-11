@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type MessageBuilder struct {
@@ -17,15 +19,31 @@ func NewMessageBuilder(device *Device, alarm *Alarm) *MessageBuilder {
 	}
 }
 
+func unixToLocal(unixTime int64) (time.Time, error) {
+	loc, err := time.LoadLocation("America/Guayaquil")
+	if err != nil {
+		return time.Time{}, fmt.Errorf("failed to load location: %w", err)
+	}
+	return time.Unix(unixTime, 0).In(loc), nil
+}
+
+func (mb *MessageBuilder) getCoordinates() (lat, lng string) {
+	if mb.alarm.Lat != nil {
+		lat = *mb.alarm.Lat
+	}
+	if mb.alarm.Lng != nil {
+		lng = *mb.alarm.Lng
+	}
+	return lat, lng
+}
+
 func (mb *MessageBuilder) getAlarmAddress() string {
-	const defaultLocation = "Ubicación desconocida\n"
-	if mb.alarm.Lat == nil || mb.alarm.Lng == nil {
+	const defaultLocation = "\nUbicación desconocida\n"
+	lat, lng := mb.getCoordinates()
+	if lat == "" || lng == "" {
 		return defaultLocation
 	}
-	if *mb.alarm.Lat == "" || *mb.alarm.Lng == "" {
-		return defaultLocation
-	}
-	address := GetAddress(*mb.alarm.Lat, *mb.alarm.Lng)
+	address := GetAddress(lat, lng)
 	if address == nil {
 		return defaultLocation
 	}
@@ -38,17 +56,18 @@ func (mb *MessageBuilder) getAlarmAddress() string {
 
 func (mb *MessageBuilder) getGoogleMapsLink() string {
 	const googleMapsLinkBase = "https://www.google.com/maps/search/?api=1&query=%s,%s"
-	if mb.alarm.Lat == nil || mb.alarm.Lng == nil {
+	lat, lng := mb.getCoordinates()
+	if lat == "" || lng == "" {
 		return ""
 	}
-	if *mb.alarm.Lat == "" || *mb.alarm.Lng == "" {
-		return ""
-	}
-	return fmt.Sprintf(googleMapsLinkBase, *mb.alarm.Lat, *mb.alarm.Lng)
+	return fmt.Sprintf(googleMapsLinkBase, lat, lng)
 }
 
 func (mb *MessageBuilder) BuildMessage() string {
-	localTime := unixToLocal(mb.alarm.Time)
+	localTime, err := unixToLocal(mb.alarm.Time)
+	if err != nil {
+		logrus.WithError(err).Error("Error converting unix time to local")
+	}
 	carOwner, licenseNumber, vin := mb.getUserDetails()
 	alert := mb.getAlert()
 	message := fmt.Sprintf("%s\nDatos del usuario:\nUsuario: %s", alert, mb.device.UserName)
@@ -58,11 +77,6 @@ func (mb *MessageBuilder) BuildMessage() string {
 	message += fmt.Sprintf("\nHora de alarma: %s", localTime)
 	message += mb.getAlarmAddress()
 	return message
-}
-
-func unixToLocal(unixTime int64) time.Time {
-	loc, _ := time.LoadLocation("America/Guayaquil")
-	return time.Unix(unixTime, 0).In(loc)
 }
 
 func (mb *MessageBuilder) getUserDetails() (carOwner, licenseNumber, vin string) {
@@ -91,8 +105,6 @@ func (mb *MessageBuilder) getAlert() string {
 			return "🔧🔧 ALERTA DE DESMONTAJE 🔧🔧"
 		case 10:
 			return "💡💡 ALERTA DE SENSOR DE LUZ 💡💡"
-		case 11:
-			return "⚡⚡ ALERTA DE CORTE DE CORRIENTE ⚡⚡"
 		default:
 			return "⚡⚡ ALERTA DE CORTE DE CORRIENTE ⚡⚡"
 		}
