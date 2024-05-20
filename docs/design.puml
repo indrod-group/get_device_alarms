@@ -41,6 +41,18 @@ class DataSaver implements Handler {
     Handle(interface{}) (interface{}, error)
 }
 
+class UserDevicesApi {
+    - devices
+    - numberphones
+}
+
+class MsgSender implements Handler {
+    next : Handler
+    SetNext(Handler)
+    Handle(interface{}) (interface{}, error)
+    sendAlarms() (interface{}, error)
+}
+
 class Director {
     first : Handler
     BuildChain()
@@ -50,6 +62,7 @@ class Director {
 DeviceController -right-> RequestGenerator
 RequestGenerator -right-> RequestExecutor
 RequestExecutor -right-> DataSaver
+DataSaver -right-> MsgSender
 Director -down-> DeviceController
 
 @enduml
