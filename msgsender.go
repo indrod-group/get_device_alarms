@@ -20,17 +20,22 @@ SendMessage sends a WhatsApp message to multiple recipients using the Twilio API
 
 Inputs:
   - message (string): The content of the message to be sent.
+  - imei (string): The IMEI of the device whose associated
+    users' phone numbers will be retrieved.
 
 Outputs:
-  - None. The function only prints the message SID if the message is sent successfully or an error message if there is an error.
+  - None. The function only prints the message SID
+    if the message is sent successfully or
+    an error message if there is an error.
 
 Example Usage:
 
-	SendMessage("Hello, World!")
+	SendMessage("Hello, World!", "86541232122351")
 
-This code will send the message "Hello, World!" to the three WhatsApp numbers specified in the numbers array.
+This code will send the message "Hello, World!"
+to the WhatsApp numbers associated with the device specified by the IMEI.
 */
-func SendMessage(message string) {
+func SendMessage(message, imei string) {
 	if discardMessage(message) {
 		return
 	}
@@ -39,16 +44,18 @@ func SendMessage(message string) {
 		Password: os.Getenv("TWILIO_AUTH_TOKEN"),
 	})
 
-	numbers := []string{
-		"whatsapp:+593979368744",
-		"whatsapp:+593987129357",
+	numbers, err := GetPhoneNumbersFromAPI(imei)
+	if err != nil {
+		logrus.WithError(err).Error("Error retrieving phone numbers")
+		return
 	}
 
 	for _, number := range numbers {
 		params := &api.CreateMessageParams{}
 		params.SetFrom("whatsapp:+14155238886")
 		params.SetBody(message)
-		params.SetTo(number)
+		formatedNumber := fmt.Sprintf("whatsapp:%s", number)
+		params.SetTo(formatedNumber)
 
 		resp, err := client.Api.CreateMessage(params)
 		if err != nil {
@@ -110,7 +117,7 @@ func (ms *MessageSender) Handle(data interface{}) (interface{}, error) {
 			}
 			mb := NewMessageBuilder(device, &alarm)
 			message := mb.BuildMessage()
-			SendMessage(message)
+			SendMessage(message, alarm.Imei)
 		}(alarm)
 	}
 
