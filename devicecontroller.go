@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type DeviceController struct {
@@ -28,6 +30,10 @@ func (dc *DeviceController) getDevices(queryParams map[string]string) ([]Device,
 
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"error": err,
+			"url":   u.String(),
+		}).Error("Error creating HTTP request")
 		return nil, err
 	}
 	req.Header.Add("Authorization", "Token "+apiKey)
@@ -43,17 +49,29 @@ func (dc *DeviceController) getDevices(queryParams map[string]string) ([]Device,
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"error": err,
+			"url":   u.String(),
+		}).Error("Error executing HTTP request")
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		logrus.WithFields(logrus.Fields{
+			"status_code": resp.StatusCode,
+			"url":         u.String(),
+		}).Error("Received non-200 response status")
 		return nil, errors.New("received non-200 response status")
 	}
 
 	var devices []Device
 	err = json.NewDecoder(resp.Body).Decode(&devices)
 	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"error": err,
+			"url":   u.String(),
+		}).Error("Error decoding response body")
 		return nil, err
 	}
 

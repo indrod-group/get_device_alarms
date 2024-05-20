@@ -25,7 +25,7 @@ type Device struct {
 
 const DEVICE_ALARM_URL = "https://open.iopgps.com/api/device/alarm?imei=%s&startTime=%d&endTime=%d"
 const TWENTY_FOUR_HOURS_IN_SECONDS = 86400
-const DEVICES_API_URL = "http://localhost:9090/api/v1/devices/"
+const DEVICES_API_URL = "https://api.road-safety-ec.com/api/v1/devices/"
 
 func (d *Device) GenerateURL() string {
 	endTime := time.Now().Unix()
@@ -82,7 +82,7 @@ func CleanAndValidateIMEI(imei string) (string, error) {
 	return cleanIMEI, nil
 }
 
-const DEVICE_INFO_URL = "http://localhost:9090/api/v1/devices/%s/"
+const DEVICE_INFO_URL = "https://api.road-safety-ec.com/api/v1/devices/%s/"
 
 func GetDeviceByImei(imei string) (*Device, error) {
 	var apiKey = os.Getenv("API_KEY")

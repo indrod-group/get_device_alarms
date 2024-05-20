@@ -22,7 +22,7 @@ type Alarm struct {
 	Speed        *int64  `json:"speed,omitempty"`
 }
 
-const ALARMS_API_URL = "http://localhost:9090/api/v1/alarms/"
+const ALARMS_API_URL = "https://api.road-safety-ec.com/api/v1/alarms/"
 
 func (a *Alarm) CreateAlarm() error {
 	var apiKey = os.Getenv("API_KEY")
