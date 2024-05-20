@@ -17,7 +17,7 @@ type RequestExecutor struct {
 }
 
 // Don't change this value by any reason.
-const MAX_REQUESTS_IN_WWT_API_PER_SECOND = 10
+const MAX_REQUESTS_IN_WWT_API_PER_SECOND = 5
 
 // This function handles a slice of URLs by sending requests to each URL and collecting the alarm data from the responses.
 // It limits the number of concurrent requests to MAX_REQUEST_PER_SECOND using a semaphore channel.
