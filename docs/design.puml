@@ -29,13 +29,25 @@ class RequestGenerator implements Handler {
     Handle(interface{}) (interface{}, error)
 }
 
-class RequestExecutor implements Handler {
+class IOPGPSApi implements Handler {
     next : Handler
     SetNext(Handler)
     Handle(interface{}) (interface{}, error)
 }
 
-class DataSaver implements Handler {
+class WhatsGPSApi implements Handler {
+    next : Handler
+    SetNext(Handler)
+    Handle(interface{}) (interface{}, error)
+}
+
+class WhatsGPSColletor implements Handler {
+    next : Handler
+    SetNext(Handler)
+    Handle(interface{}) (interface{}, error)
+}
+
+class IopGPSColletor implements Handler {
     next : Handler
     SetNext(Handler)
     Handle(interface{}) (interface{}, error)
@@ -60,9 +72,12 @@ class Director {
 }
 
 DeviceController -right-> RequestGenerator
-RequestGenerator -right-> RequestExecutor
-RequestExecutor -right-> DataSaver
-DataSaver -right-> MsgSender
+RequestGenerator -right-> IOPGPSApi
+RequestGenerator -down-> WhatsGPSApi
+IOPGPSApi -right-> IopGPSColletor
+WhatsGPSApi -right-> WhatsGPSColletor
+WhatsGPSColletor -right-> MsgSender
+IopGPSColletor -right-> MsgSender
 Director -down-> DeviceController
 
 @enduml

@@ -11,7 +11,7 @@ type RequestGenerator struct {
 	next Handler
 }
 
-const MAX_DEVICES_FOR_UPDATE = 22
+const MAX_DEVICES_FOR_UPDATE = 10
 
 func (rg *RequestGenerator) Handle(data interface{}) (interface{}, error) {
 	devices, ok := data.([]Device)

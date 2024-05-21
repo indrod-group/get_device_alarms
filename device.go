@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -14,16 +15,29 @@ import (
 
 // Device represents a device with various properties.
 type Device struct {
-	Imei             string  `json:"imei"`
-	UserName         string  `json:"user_name"`
-	CarOwner         *string `json:"car_owner"`
-	LicenseNumber    *string `json:"license_number"`
-	Vin              *string `json:"vin"`
-	IsTrackingAlarms bool    `json:"is_tracking_alarms"`
-	LastTimeTracked  int64   `json:"last_time_tracked"`
+	Imei             string   `json:"imei"`
+	UserName         string   `json:"user_name"`
+	CarOwner         *string  `json:"car_owner"`
+	LicenseNumber    *string  `json:"license_number"`
+	Vin              *string  `json:"vin"`
+	IsTrackingAlarms bool     `json:"is_tracking_alarms"`
+	LastTimeTracked  int64    `json:"last_time_tracked"`
+	Provider         Provider `json:"provider"`
 }
 
+type Provider string
+
+const (
+	WanWayTech Provider = "WanWayTech"
+	WhatsGPS   Provider = "WhatsGPS"
+)
+
+// DEVICE_ALARM_URL is used for IOPGPS
 const DEVICE_ALARM_URL = "https://open.iopgps.com/api/device/alarm?imei=%s&startTime=%d&endTime=%d"
+
+// WHATSGPS_API_URL is used for WhatsGPS
+const WHATSGPS_API_URL = "https://www.whatsgps.com/alarmSta/queryDetail.do"
+
 const TWENTY_FOUR_HOURS_IN_SECONDS = 86400
 const DEVICES_API_URL = "https://api.road-safety-ec.com/api/v1/devices/"
 
@@ -36,7 +50,28 @@ func (d *Device) GenerateURL() string {
 		startTime = d.LastTimeTracked
 	}
 	d.LastTimeTracked = endTime
-	return fmt.Sprintf(DEVICE_ALARM_URL, d.Imei, startTime, endTime)
+
+	switch d.Provider {
+	case WanWayTech:
+		return fmt.Sprintf(DEVICE_ALARM_URL, d.Imei, startTime, endTime)
+	case WhatsGPS:
+		token := os.Getenv("WHATSGPS_API_KEY")
+		startTimeString := time.Unix(startTime, 0).Format("2006-01-02 15:04:05")
+		endTimeString := time.Unix(endTime, 0).Format("2006-01-02 15:04:05")
+
+		u, _ := url.Parse(WHATSGPS_API_URL)
+		q := u.Query()
+		q.Add("token", token)
+		q.Add("carId", d.Imei)
+		q.Add("startTime", startTimeString)
+		q.Add("endTime", endTimeString)
+		u.RawQuery = q.Encode()
+
+		return u.String()
+	default:
+		fmt.Println("Unknown provider")
+	}
+	return ""
 }
 
 func (d *Device) UpdateDevice() error {

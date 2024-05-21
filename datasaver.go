@@ -3,55 +3,51 @@ package main
 import (
 	"fmt"
 	"sync"
+
+	"github.com/sirupsen/logrus"
 )
 
 type DataSaver struct {
 	next Handler
 }
 
-const MAX_ALARMS_TO_REGISTER = 10
+const MAX_ALARMS_TO_REGISTER = 25
 
 func (ds *DataSaver) Handle(data interface{}) (interface{}, error) {
-	alarmData, ok := data.([]AlarmData)
+	alarms, ok := data.([]Alarm)
 	if !ok {
 		return nil, fmt.Errorf("DataSaver.Handle: expected []AlarmData, got %T", data)
 	}
 
 	var wg sync.WaitGroup
-	var mutex sync.Mutex
-	var allAlarms []Alarm
 	sem := make(chan struct{}, MAX_ALARMS_TO_REGISTER)
 
-	for _, data := range alarmData {
+	for _, alarm := range alarms {
 		wg.Add(1)
-		go func(data AlarmData) {
+		go func(alarm Alarm) {
 			defer wg.Done()
 
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			// Convert AlarmData to Alarm
-			alarm := ConvertAlarmDataToRequest(data)
-
-			// Create the alarm
 			err := alarm.CreateAlarm()
 			if err != nil {
-				fmt.Println(err)
+				// Log the alarm information
+				logrus.WithFields(logrus.Fields{
+					"error": err,
+					"alarm": alarm,
+				}).Warning("Error saving the alarm")
 				return
 			}
-
-			mutex.Lock()
-			allAlarms = append(allAlarms, alarm)
-			mutex.Unlock()
-		}(data)
+		}(alarm)
 	}
 
 	wg.Wait()
 
 	if ds.next != nil {
-		return ds.next.Handle(allAlarms)
+		return ds.next.Handle(alarms)
 	}
-	return allAlarms, nil
+	return alarms, nil
 }
 
 func (ds *DataSaver) SetNext(next Handler) {
